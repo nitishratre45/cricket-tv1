@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cricket TV</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>🏏 CRICKET TV</h1>
+    <input id="search" type="search" placeholder="Search channels...">
+  </header>
+
+  <main>
+    <section class="player-wrap">
+      <div class="player-box">
+        <video id="player" controls playsinline></video>
+        <div id="overlay" class="overlay">Select a channel to start</div>
+      </div>
+
+      <div class="status">
+        <span>🔴 LIVE</span>
+        <span id="viewerCount">👁 3,450 Watching</span>
+        <span id="totalViewers">👥 20,000 Total</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Channels</h2>
+      <div id="categories" class="categories"></div>
+      <div id="channelList" class="channel-grid">
+        <p>Loading channels...</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
