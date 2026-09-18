@@ -26,12 +26,36 @@ const PLAYLIST_URL =
 // Jo naam yaha nahi hoga,
 // woh website par show nahi hoga.
 // ======================================================
-
 const ALLOWED_CHANNELS = [
+  // Sony Sports
+  "Sony Sports Ten 1",
+  "Sony Sports Ten 1 HD",
+  "Sony Sports Ten 2",
+  "Sony Sports Ten 2 HD",
+  "Sony Sports Ten 3 Hindi",
+  "Sony Sports Ten 3 Hindi HD",
+  "Sony Sports Ten 4 Tamil",
+  "Sony Sports Ten 4 Telugu",
+  "Sony Sports Ten 5",
+  "Sony Sports Ten 5 HD",
 
-  // TEST CHANNEL
-  "Cricket Test",
-
+  // Star Sports
+  "Star Sports 1",
+  "Star Sports 1 HD",
+  "Star Sports 1 HD Hindi",
+  "Star Sports 1 Hindi",
+  "Star Sports 1 Kannada",
+  "Star Sports 1 Tamil",
+  "Star Sports 1 Telugu",
+  "Star Sports 2",
+  "Star Sports 2 HD",
+  "Star Sports 2 Hindi",
+  "Star Sports 2 Hindi HD",
+  "Star Sports 2 Kannada",
+  "Star Sports 2 Tamil",
+  "Star Sports 2 Telugu",
+  "Star Sports Khel"
+];
   // Example:
   // "Your Authorized Sports Channel",
   // "Your Authorized Cricket Channel"
