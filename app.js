@@ -1,214 +1,819 @@
+// ======================================================
+// CRICKET LIVE
+// CHANNEL SYSTEM
+// ======================================================
+
+
+// ======================================================
+// 1. IPTV SPORTS PLAYLIST
+// ======================================================
+
 const PLAYLIST_URL =
-  "https://raw.githubusercontent.com/freecasthub/public-iptv/main/sports.m3u";
+  "https://iptv-org.github.io/iptv/categories/sports.m3u";
 
-const video = document.getElementById("player");
-const overlay = document.getElementById("overlay");
-const channelList = document.getElementById("channelList");
-const categoriesEl = document.getElementById("categories");
-const searchEl = document.getElementById("search");
 
-let channels = [];
-let activeCategory = "All";
+// ======================================================
+// 2. ONLY THESE CHANNELS WILL APPEAR
+// ======================================================
+//
+// IMPORTANT:
+// Yaha exact channel name likho.
+//
+// Example:
+// "Channel Name"
+// "Another Channel"
+//
+// Jo naam yaha nahi hoga,
+// woh website par show nahi hoga.
+// ======================================================
+
+const ALLOWED_CHANNELS = [
+
+  // TEST CHANNEL
+  "Cricket Test",
+
+  // Example:
+  // "Your Authorized Sports Channel",
+  // "Your Authorized Cricket Channel"
+
+];
+
+
+// ======================================================
+// 3. LOCAL TEST CHANNEL
+// ======================================================
+//
+// Ye Mux ka public test stream hai.
+// Isse website/player testing ke liye use kar sakte ho.
+//
+// ======================================================
+
+const TEST_CHANNEL = {
+
+  name: "Cricket Test",
+
+  logo: "🏏",
+
+  url:
+    "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+
+};
+
+
+// ======================================================
+// 4. HTML ELEMENTS
+// ======================================================
+
+const video =
+  document.getElementById("player");
+
+const overlay =
+  document.getElementById("overlay");
+
+const overlayTitle =
+  document.getElementById("overlayTitle");
+
+const message =
+  document.getElementById("message");
+
+const channelsContainer =
+  document.getElementById("channels");
+
+const channelStatus =
+  document.getElementById("channelStatus");
+
+const matchTitle =
+  document.getElementById("matchTitle");
+
+const statusText =
+  document.getElementById("statusText");
+
+const refreshChannels =
+  document.getElementById("refreshChannels");
+
+
+// ======================================================
+// 5. HLS INSTANCE
+// ======================================================
+
 let hls = null;
 
-let liveWatching = 3450;
-let totalViewers = 20000;
 
-function formatNumber(n) {
-  return n.toLocaleString("en-IN");
+// ======================================================
+// 6. SHOW / HIDE OVERLAY
+// ======================================================
+
+function hideOverlay() {
+
+  overlay.classList.add("hidden");
+
 }
 
-function updateViewerDisplay() {
-  document.getElementById("viewerCount").textContent =
-    `👁 ${formatNumber(liveWatching)} Watching`;
-  document.getElementById("totalViewers").textContent =
-    `👥 ${formatNumber(totalViewers)} Total`;
+
+function showOverlay(title, text) {
+
+  overlayTitle.textContent = title;
+
+  message.textContent = text;
+
+  overlay.classList.remove("hidden");
+
 }
 
-setInterval(() => {
-  let change = 0;
-  while (change === 0) {
-    change = Math.floor(Math.random() * 61) - 30;
+
+// ======================================================
+// 7. DESTROY OLD HLS PLAYER
+// ======================================================
+
+function destroyPlayer() {
+
+  if (hls) {
+
+    hls.destroy();
+
+    hls = null;
+
   }
 
-  liveWatching = Math.max(3200, Math.min(8000, liveWatching + change));
-  updateViewerDisplay();
-}, 60000);
+  video.pause();
 
-setInterval(() => {
-  if (totalViewers < 80000) {
-    totalViewers = Math.min(
-      80000,
-      totalViewers + Math.floor(Math.random() * 101) + 50
+  video.removeAttribute("src");
+
+  video.load();
+
+}
+
+
+// ======================================================
+// 8. PLAY CHANNEL
+// ======================================================
+
+function playChannel(channel) {
+
+  if (!channel || !channel.url) {
+
+    showOverlay(
+      "Stream unavailable",
+      "This channel has no valid stream URL."
     );
-    updateViewerDisplay();
-  }
-}, 60000);
 
-function parseM3U(text) {
-  const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-  const result = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    if (!lines[i].startsWith("#EXTINF")) continue;
-
-    const info = lines[i];
-    const url = lines[i + 1] && !lines[i + 1].startsWith("#")
-      ? lines[i + 1]
-      : "";
-
-    if (!url) continue;
-
-    const name = info.includes(",")
-      ? info.substring(info.indexOf(",") + 1).trim()
-      : "Unknown Channel";
-
-    const groupMatch = info.match(/group-title="([^"]*)"/i);
-    const logoMatch = info.match(/tvg-logo="([^"]*)"/i);
-
-    result.push({
-      name,
-      url,
-      group: groupMatch ? groupMatch[1] : "Sports",
-      logo: logoMatch ? logoMatch[1] : ""
-    });
-  }
-
-  return result;
-}
-
-function renderCategories() {
-  const groups = ["All", ...new Set(channels.map(c => c.group).filter(Boolean))];
-
-  categoriesEl.innerHTML = groups.map(group => `
-    <button class="${group === activeCategory ? "active" : ""}"
-            data-category="${escapeHtml(group)}">
-      ${escapeHtml(group)}
-    </button>
-  `).join("");
-
-  categoriesEl.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      activeCategory = btn.dataset.category;
-      renderCategories();
-      renderChannels();
-    });
-  });
-}
-
-function renderChannels() {
-  const query = searchEl.value.trim().toLowerCase();
-
-  const filtered = channels.filter(channel => {
-    const categoryMatch =
-      activeCategory === "All" || channel.group === activeCategory;
-
-    const searchMatch =
-      !query ||
-      channel.name.toLowerCase().includes(query) ||
-      channel.group.toLowerCase().includes(query);
-
-    return categoryMatch && searchMatch;
-  });
-
-  if (!filtered.length) {
-    channelList.innerHTML = "<p>No channels found.</p>";
     return;
+
   }
 
-  channelList.innerHTML = filtered.map((channel, index) => `
-    <article class="channel-card" data-index="${index}">
-      <div class="channel-name">${escapeHtml(channel.name)}</div>
-      <div class="channel-group">${escapeHtml(channel.group)}</div>
-    </article>
-  `).join("");
 
-  channelList.querySelectorAll(".channel-card").forEach(card => {
-    const visibleIndex = Number(card.dataset.index);
-    card.addEventListener("click", () => playChannel(filtered[visibleIndex]));
-  });
+  destroyPlayer();
+
+
+  matchTitle.textContent =
+    channel.name;
+
+  statusText.textContent =
+    "LOADING";
+
+
+  showOverlay(
+    channel.name,
+    "Connecting to live stream..."
+  );
+
+
+  // ==================================================
+  // HLS.JS
+  // ==================================================
+
+  if (
+    window.Hls &&
+    Hls.isSupported()
+  ) {
+
+    hls = new Hls({
+
+      enableWorker: true,
+
+      lowLatencyMode: false,
+
+      maxBufferLength: 20,
+
+      maxMaxBufferLength: 30,
+
+      liveSyncDurationCount: 3
+
+    });
+
+
+    hls.loadSource(channel.url);
+
+    hls.attachMedia(video);
+
+
+    hls.on(
+      Hls.Events.MANIFEST_PARSED,
+      () => {
+
+        statusText.textContent =
+          "LIVE";
+
+        video.play().catch(() => {
+
+          showOverlay(
+            channel.name,
+            "Tap the play button to start."
+          );
+
+        });
+
+      }
+    );
+
+
+    hls.on(
+      Hls.Events.ERROR,
+      (_, data) => {
+
+        console.log(
+          "HLS ERROR:",
+          data
+        );
+
+
+        if (data.fatal) {
+
+          statusText.textContent =
+            "ERROR";
+
+
+          showOverlay(
+            "Stream unavailable",
+            "This stream could not be played."
+          );
+
+        }
+
+      }
+    );
+
+
+    video.addEventListener(
+      "playing",
+      () => {
+
+        hideOverlay();
+
+        statusText.textContent =
+          "LIVE";
+
+      },
+      { once: true }
+    );
+
+  }
+
+
+  // ==================================================
+  // NATIVE HLS
+  // ==================================================
+
+  else if (
+    video.canPlayType(
+      "application/vnd.apple.mpegurl"
+    )
+  ) {
+
+    video.src =
+      channel.url;
+
+
+    video.addEventListener(
+      "loadedmetadata",
+      () => {
+
+        video.play().catch(() => {
+
+          showOverlay(
+            channel.name,
+            "Tap the play button to start."
+          );
+
+        });
+
+      },
+      { once: true }
+    );
+
+
+    video.addEventListener(
+      "playing",
+      () => {
+
+        hideOverlay();
+
+        statusText.textContent =
+          "LIVE";
+
+      },
+      { once: true }
+    );
+
+  }
+
+
+  else {
+
+    showOverlay(
+      "Not supported",
+      "This browser does not support HLS playback."
+    );
+
+  }
+
 }
 
-function escapeHtml(value) {
-  return String(value)
+
+// ======================================================
+// 9. CREATE CHANNEL CARD
+// ======================================================
+
+function createChannelCard(channel) {
+
+  const card =
+    document.createElement("button");
+
+
+  card.className =
+    "channel-card";
+
+
+  card.type =
+    "button";
+
+
+  card.innerHTML = `
+
+    <div class="channel-logo">
+
+      ${
+        channel.logo
+          ? `<img
+               src="${channel.logo}"
+               alt=""
+               onerror="this.style.display='none'"
+             >`
+          : `<span>🏏</span>`
+      }
+
+    </div>
+
+
+    <div class="channel-info">
+
+      <strong>
+        ${escapeHtml(channel.name)}
+      </strong>
+
+      <small>
+        LIVE
+      </small>
+
+    </div>
+
+  `;
+
+
+  card.addEventListener(
+    "click",
+    () => {
+
+      document
+        .querySelectorAll(".channel-card")
+        .forEach(item => {
+
+          item.classList.remove(
+            "active"
+          );
+
+        });
+
+
+      card.classList.add(
+        "active"
+      );
+
+
+      playChannel(channel);
+
+    }
+  );
+
+
+  return card;
+
+}
+
+
+// ======================================================
+// 10. HTML ESCAPE
+// ======================================================
+
+function escapeHtml(text) {
+
+  return String(text)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+
 }
 
-function playChannel(channel) {
-  overlay.textContent = `Loading ${channel.name}...`;
-  overlay.style.display = "grid";
 
-  if (hls) {
-    hls.destroy();
-    hls = null;
-  }
+// ======================================================
+// 11. PARSE M3U
+// ======================================================
 
-  const url = channel.url;
+function parseM3U(text) {
 
-  if (window.Hls && Hls.isSupported() &&
-      (url.includes(".m3u8") || url.includes("m3u8"))) {
-    hls = new Hls({
-      enableWorker: true,
-      lowLatencyMode: false,
-      maxBufferLength: 30,
-      maxMaxBufferLength: 60
-    });
+  const lines =
+    text.split(/\r?\n/);
 
-    hls.loadSource(url);
-    hls.attachMedia(video);
+  const channels = [];
 
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      overlay.style.display = "none";
-      video.play().catch(() => {});
-    });
+  let currentInfo = null;
 
-    hls.on(Hls.Events.ERROR, (_, data) => {
-      if (data.fatal) {
-        overlay.textContent = "This channel is unavailable right now.";
-        overlay.style.display = "grid";
-      }
-    });
-  } else {
-    video.src = url;
-    video.load();
 
-    video.addEventListener("loadedmetadata", () => {
-      overlay.style.display = "none";
-      video.play().catch(() => {});
-    }, { once: true });
+  for (
+    let i = 0;
+    i < lines.length;
+    i++
+  ) {
 
-    video.addEventListener("error", () => {
-      overlay.textContent = "This channel is unavailable right now.";
-      overlay.style.display = "grid";
-    }, { once: true });
-  }
-}
+    const line =
+      lines[i].trim();
 
-async function loadPlaylist() {
-  try {
-    const response = await fetch(PLAYLIST_URL, { cache: "no-store" });
 
-    if (!response.ok) {
-      throw new Error(`Playlist HTTP ${response.status}`);
+    if (
+      line.startsWith("#EXTINF:")
+    ) {
+
+      const commaIndex =
+        line.indexOf(",");
+
+
+      let name =
+        commaIndex !== -1
+          ? line
+              .substring(commaIndex + 1)
+              .trim()
+          : "Unknown Channel";
+
+
+      const logoMatch =
+        line.match(
+          /tvg-logo="([^"]*)"/i
+        );
+
+
+      currentInfo = {
+
+        name: name,
+
+        logo:
+          logoMatch
+            ? logoMatch[1]
+            : ""
+
+      };
+
     }
 
-    const text = await response.text();
-    channels = parseM3U(text);
 
-    renderCategories();
-    renderChannels();
-  } catch (error) {
-    console.error("Playlist error:", error);
-    channelList.innerHTML =
-      "<p>Could not load the sports playlist. Please try again later.</p>";
+    else if (
+      currentInfo &&
+      line &&
+      !line.startsWith("#")
+    ) {
+
+      currentInfo.url =
+        line;
+
+
+      channels.push(
+        currentInfo
+      );
+
+
+      currentInfo =
+        null;
+
+    }
+
   }
+
+
+  return channels;
+
 }
 
-searchEl.addEventListener("input", renderChannels);
 
-updateViewerDisplay();
+// ======================================================
+// 12. FIND SELECTED CHANNELS
+// ======================================================
+
+function filterAllowedChannels(
+  channels
+) {
+
+  if (
+    !ALLOWED_CHANNELS.length
+  ) {
+
+    return [];
+
+  }
+
+
+  return channels.filter(
+    channel => {
+
+      return ALLOWED_CHANNELS.some(
+        allowed => {
+
+          return (
+            channel.name
+              .trim()
+              .toLowerCase()
+              ===
+            allowed
+              .trim()
+              .toLowerCase()
+          );
+
+        }
+      );
+
+    }
+  );
+
+}
+
+
+// ======================================================
+// 13. LOAD PLAYLIST
+// ======================================================
+
+async function loadPlaylist() {
+
+  channelStatus.textContent =
+    "Loading sports playlist...";
+
+
+  try {
+
+    const response =
+      await fetch(
+        PLAYLIST_URL,
+        {
+          cache: "no-store"
+        }
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        "Playlist request failed"
+      );
+
+    }
+
+
+    const text =
+      await response.text();
+
+
+    const allChannels =
+      parseM3U(text);
+
+
+    const selectedChannels =
+      filterAllowedChannels(
+        allChannels
+      );
+
+
+    renderChannels(
+      selectedChannels
+    );
+
+  }
+
+
+  catch (error) {
+
+    console.error(error);
+
+
+    channelStatus.textContent =
+      "Could not load playlist.";
+
+
+    renderChannels([]);
+
+  }
+
+}
+
+
+// ======================================================
+// 14. RENDER CHANNELS
+// ======================================================
+
+function renderChannels(
+  channels
+) {
+
+  channelsContainer.innerHTML =
+    "";
+
+
+  // Always show our local test channel
+  // if it is allowed.
+
+  let finalChannels =
+    [...channels];
+
+
+  if (
+    ALLOWED_CHANNELS.some(
+      name =>
+        name.toLowerCase()
+        ===
+        TEST_CHANNEL.name.toLowerCase()
+    )
+  ) {
+
+    const alreadyExists =
+      finalChannels.some(
+        channel =>
+          channel.name
+            .toLowerCase()
+          ===
+          TEST_CHANNEL.name
+            .toLowerCase()
+      );
+
+
+    if (!alreadyExists) {
+
+      finalChannels.unshift(
+        TEST_CHANNEL
+      );
+
+    }
+
+  }
+
+
+  if (
+    finalChannels.length === 0
+  ) {
+
+    channelStatus.textContent =
+      "No selected channels found.";
+
+    return;
+
+  }
+
+
+  channelStatus.textContent =
+    `${finalChannels.length} channel(s) available`;
+
+
+  finalChannels.forEach(
+    channel => {
+
+      const card =
+        createChannelCard(
+          channel
+        );
+
+
+      channelsContainer.appendChild(
+        card
+      );
+
+    }
+  );
+
+}
+
+
+// ======================================================
+// 15. REFRESH BUTTON
+// ======================================================
+
+refreshChannels.addEventListener(
+  "click",
+  () => {
+
+    loadPlaylist();
+
+  }
+);
+
+
+// ======================================================
+// 16. FIREBASE
+// ======================================================
+
+const firebaseConfig = {
+
+  apiKey:
+    "AIzaSyDm3DIHJfRPEqNqrUlYJutRQm8XIA6H3fs",
+
+  authDomain:
+    "cricket-live-39106.firebaseapp.com",
+
+  databaseURL:
+    "https://cricket-live-39106-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+  projectId:
+    "cricket-live-39106",
+
+  storageBucket:
+    "cricket-live-39106.firebasestorage.app",
+
+  messagingSenderId:
+    "841890143",
+
+  appId:
+    "1:841890143:web:ca5b87c9395bdc19145eea",
+
+  measurementId:
+    "G-ZNEZC8YVMX"
+
+};
+
+
+firebase.initializeApp(
+  firebaseConfig
+);
+
+
+const database =
+  firebase.database();
+
+
+// ======================================================
+// 17. LIVE VIEWER COUNT
+// ======================================================
+
+const viewerCountElement =
+  document.getElementById(
+    "viewerCount"
+  );
+
+
+const viewerRef =
+  database
+    .ref("liveViewers")
+    .push();
+
+
+viewerRef
+  .onDisconnect()
+  .remove();
+
+
+viewerRef.set(true);
+
+
+database
+  .ref("liveViewers")
+  .on(
+    "value",
+    snapshot => {
+
+      const count =
+        snapshot.numChildren();
+
+
+      if (
+        viewerCountElement
+      ) {
+
+        viewerCountElement.textContent =
+          `👁 ${count} Watching`;
+
+      }
+
+    }
+  );
+
+
+// ======================================================
+// 18. START
+// ======================================================
+
 loadPlaylist();
