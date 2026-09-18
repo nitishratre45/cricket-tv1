@@ -3,39 +3,198 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cricket TV</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js"></script>
-</head>
-<body>
-  <header>
-    <h1>🏏 CRICKET TV</h1>
-    <input id="search" type="search" placeholder="Search channels...">
-  </header>
 
-  <main>
-    <section class="player-wrap">
-      <div class="player-box">
-        <video id="player" controls playsinline></video>
-        <div id="overlay" class="overlay">Select a channel to start</div>
+  <title>Cricket Live</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="brand">
+    🏏 CRICKET<span>LIVE</span>
+  </div>
+
+  <div class="live-pill">
+    <i></i> LIVE
+  </div>
+
+</header>
+
+
+<main class="container">
+
+  <!-- VIDEO PLAYER -->
+
+  <section class="hero">
+
+    <div class="video-wrap">
+
+      <video
+        id="player"
+        controls
+        playsinline
+        preload="auto">
+      </video>
+
+      <div id="overlay" class="overlay">
+
+        <div class="play-icon">▶</div>
+
+        <h2 id="overlayTitle">
+          Select a Channel
+        </h2>
+
+        <p id="message">
+          Choose a channel below to start watching.
+        </p>
+
       </div>
+
+    </div>
+
+
+    <!-- MATCH INFO -->
+
+    <div class="match-info">
+
+      <div>
+
+        <p class="eyebrow">
+          LIVE CRICKET
+        </p>
+
+        <h1 id="matchTitle">
+          Select a Channel
+        </h1>
+
+        <p class="muted">
+          Live broadcast
+        </p>
+
+      </div>
+
 
       <div class="status">
-        <span>🔴 LIVE</span>
-        <span id="viewerCount">👁 3,450 Watching</span>
-        <span id="totalViewers">👥 20,000 Total</span>
-      </div>
-    </section>
 
-    <section>
-      <h2>Channels</h2>
-      <div id="categories" class="categories"></div>
-      <div id="channelList" class="channel-grid">
-        <p>Loading channels...</p>
-      </div>
-    </section>
-  </main>
+        <i></i>
 
-  <script src="app.js"></script>
+        <span>LIVE</span>
+
+        <span id="viewerCount">
+          👁 0 Watching
+        </span>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- CHANNEL SECTION -->
+
+  <section class="channels-section">
+
+    <div class="section-header">
+
+      <div>
+
+        <p class="eyebrow">
+          SPORTS
+        </p>
+
+        <h2>
+          Channels
+        </h2>
+
+      </div>
+
+
+      <button
+        id="refreshChannels"
+        class="refresh-btn">
+        ↻
+      </button>
+
+    </div>
+
+
+    <div
+      id="channelStatus"
+      class="channel-status">
+
+      Loading channels...
+
+    </div>
+
+
+    <div
+      id="channels"
+      class="channels-grid">
+    </div>
+
+  </section>
+
+
+  <!-- INFO CARDS -->
+
+  <section class="cards">
+
+    <div class="card">
+
+      <span>STATUS</span>
+
+      <strong id="statusText">
+        READY
+      </strong>
+
+    </div>
+
+
+    <div class="card">
+
+      <span>QUALITY</span>
+
+      <strong>
+        Auto
+      </strong>
+
+    </div>
+
+
+    <div class="card">
+
+      <span>PLAYER</span>
+
+      <strong>
+        HLS
+      </strong>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<!-- HLS.JS -->
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13"></script>
+
+
+<!-- FIREBASE -->
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+
+<!-- APP -->
+
+<script src="app.js"></script>
+
 </body>
 </html>
