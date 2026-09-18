@@ -60,8 +60,6 @@ const ALLOWED_CHANNELS = [
   // "Your Authorized Sports Channel",
   // "Your Authorized Cricket Channel"
 
-];
-
 
 // ======================================================
 // 3. LOCAL TEST CHANNEL
